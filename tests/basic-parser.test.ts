@@ -1,5 +1,6 @@
 import { parseCSV } from "../src/basic-parser";
 import * as path from "path";
+import { z, ZodError } from "zod";
 
 const PEOPLE_CSV_PATH = path.join(__dirname, "../data/people.csv");
 const EMPTY_CSV_PATH = path.join(__dirname, "../data/empty.csv");
@@ -10,9 +11,10 @@ const EMPTY_FIELDS_CSV_PATH = path.join(__dirname, "../data/empty_fields.csv");
 const TRAILING_COMMAS_CSV_PATH = path.join(__dirname, "../data/trailing_commas.csv");
 const QUOTES_CSV_PATH = path.join(__dirname, "../data/quotes.csv");
 const MISSING_DATA_CSV_PATH = path.join(__dirname, "../data/missing_data.csv");
+const EXTRA_FIELDS_CSV_PATH = path.join(__dirname, "../data/extra_fields.csv");
 
 test("parseCSV yields arrays", async () => {
-  const results = await parseCSV(PEOPLE_CSV_PATH)
+  const results = await parseCSV(PEOPLE_CSV_PATH, undefined)
   expect(results).toHaveLength(5);
   expect(results[0]).toEqual(["name", "age"]);
   expect(results[1]).toEqual(["Alice", "23"]);
@@ -22,19 +24,19 @@ test("parseCSV yields arrays", async () => {
 });
 
 test("parseCSV yields only arrays", async () => {
-  const results = await parseCSV(PEOPLE_CSV_PATH)
+  const results = await parseCSV(PEOPLE_CSV_PATH, undefined)
   for(const row of results) {
     expect(Array.isArray(row)).toBe(true);
   }
 });
 
 test("parseCSV handles empty files", async () => {
-  const results = await parseCSV(EMPTY_CSV_PATH)
+  const results = await parseCSV(EMPTY_CSV_PATH, undefined)
   expect(results).toHaveLength(0);
 });
 
 test("parseCSV handles commas in CSV data", async () => {
-  const results = await parseCSV(COMMAS_CSV_PATH)
+  const results = await parseCSV(COMMAS_CSV_PATH, undefined)
   expect(results).toHaveLength(4);
   expect(results[0]).toEqual(["Caesar", "Julius", '"veni, vidi, vici"']);
   expect(results[1]).toEqual(["Jaesar", "Culius", '"I came, I saw, I conquered"']);
@@ -43,7 +45,7 @@ test("parseCSV handles commas in CSV data", async () => {
 });
 
 test("parseCSV handles whitespace", async () => {
-  const results = await parseCSV(WHITESPACE_CSV_PATH)
+  const results = await parseCSV(WHITESPACE_CSV_PATH, undefined)
   expect(results).toHaveLength(3);
   expect(results[0]).toEqual(["Tim", "Nelson", "CSCI 0320", "instructor"]);
   expect(results[1]).toEqual(["Nim", "Telson", "CSCI 0320", "student"]);
@@ -51,7 +53,7 @@ test("parseCSV handles whitespace", async () => {
 });
 
 test("parseCSV handles numbers", async () => {
-  const results = await parseCSV(NUMBERS_CSV_PATH)
+  const results = await parseCSV(NUMBERS_CSV_PATH, undefined)
   expect(results).toHaveLength(4);
   expect(results[0]).toEqual(["1", "2", "3"]);
   expect(results[1]).toEqual(["4", "5", "6"]);
@@ -60,7 +62,7 @@ test("parseCSV handles numbers", async () => {
 });
 
 test("parseCSV handles empty fields", async () => {
-  const results = await parseCSV(EMPTY_FIELDS_CSV_PATH)
+  const results = await parseCSV(EMPTY_FIELDS_CSV_PATH, undefined)
   expect(results).toHaveLength(5);
   expect(results[0]).toEqual(["name", "classes", "hobbies"]);
   expect(results[1]).toEqual(["Taylor Swift", "", "singing"]);
@@ -70,25 +72,44 @@ test("parseCSV handles empty fields", async () => {
 });
 
 test("parseCSV handles trailing commas", async () => {  
-  const results = await parseCSV(TRAILING_COMMAS_CSV_PATH)
+  const results = await parseCSV(TRAILING_COMMAS_CSV_PATH, undefined)
   expect(results).toHaveLength(2);
   expect(results[0]).toEqual(["Tim", "Nelson", "CSCI 0320", "instructor", ""]);
   expect(results[1]).toEqual(["Nim", "Telson", "CSCI 0320", "student", ""]);
 });
 
 test("parseCSV handles quotes", async () => {
-  const results = await parseCSV(QUOTES_CSV_PATH)
+  const results = await parseCSV(QUOTES_CSV_PATH, undefined)
   expect(results).toHaveLength(2);
   expect(results[0]).toEqual(["Julius", "Caesar", 'I said "veni, vidi, vici" to announce my victory']);
   expect(results[1]).toEqual(["Julius", "Caesar", '"I said "veni, vidi, vici" to announce my victory"']);
 });
 
-// what to do when data is missing? error?
 test("parseCSV handles missing data", async () => {
-  const results = await parseCSV(MISSING_DATA_CSV_PATH)
-  expect(results).toHaveLength(4);
-  expect(results[0]).toEqual(["name", "age", "year"]);
-  expect(results[1]).toEqual(["Ella Roberts", "19"]);
-  expect(results[2]).toEqual(["Roberto Elliot", "20", "junior"]);
-  expect(results[3]).toEqual(["senior"]);
+  await expect(parseCSV(MISSING_DATA_CSV_PATH, personSchema1)).rejects.toThrow();
 });
+
+const personSchema1 = z.tuple([z.string(), z.coerce.number()])
+test("parseCSV with schema throws error for malformed data", async () => {
+  // used chatgpt
+  await expect(parseCSV(PEOPLE_CSV_PATH, personSchema1)).rejects.toThrow(ZodError);
+});
+
+const personSchema2 = z.tuple([z.string(), z.coerce.number(), z.string()])
+test("parseCSV with schema throws error for empty fields", async () => {
+  await expect(parseCSV(MISSING_DATA_CSV_PATH, personSchema2)).rejects.toThrow(ZodError);
+});
+
+const personSchema3 = z.tuple([z.string(), z.coerce.number(), z.coerce.number()])
+test("parseCSV with schema throws error for extra fields", async () => {
+  await expect(parseCSV(EXTRA_FIELDS_CSV_PATH, personSchema3)).rejects.toThrow(ZodError);
+})
+
+const personSchema4 = z.tuple([z.string(), z.string(), z.string(), z.string()])
+test("parseCSV with schema works for correctly formatted csv", async () => {
+  const results = await parseCSV(WHITESPACE_CSV_PATH, personSchema4)
+  expect(results).toHaveLength(3);
+  expect(results[0]).toEqual(["Tim", "Nelson", "CSCI 0320", "instructor"]);
+  expect(results[1]).toEqual(["Nim", "Telson", "CSCI 0320", "student"]);
+  expect(results[2]).toEqual(["Tim Nim", "Nelson", "CSCI 0320 and CSCI 1340", "instructor and mentor"]);
+})
