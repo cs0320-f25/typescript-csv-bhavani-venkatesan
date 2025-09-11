@@ -55,4 +55,7 @@
 Used LLM to understand how to expect an error in jest tests.
 
 #### Total estimated time it took to complete project:
+4 hours
+
 #### Link to GitHub Repo:  
+https://github.com/cs0320-f25/typescript-csv-bhavani-venkatesan
