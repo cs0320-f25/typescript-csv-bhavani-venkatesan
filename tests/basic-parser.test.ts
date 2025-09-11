@@ -91,7 +91,6 @@ test("parseCSV handles missing data", async () => {
 
 const personSchema1 = z.tuple([z.string(), z.coerce.number()])
 test("parseCSV with schema throws error for malformed data", async () => {
-  // used chatgpt
   await expect(parseCSV(PEOPLE_CSV_PATH, personSchema1)).rejects.toThrow(ZodError);
 });
 

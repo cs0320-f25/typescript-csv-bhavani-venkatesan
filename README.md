@@ -52,5 +52,7 @@
 #### Team members and contributions (include cs logins):
 
 #### Collaborators (cslogins of anyone you worked with on this project and/or generative AI):
+Used LLM to understand how to expect an error in jest tests.
+
 #### Total estimated time it took to complete project:
 #### Link to GitHub Repo:  
