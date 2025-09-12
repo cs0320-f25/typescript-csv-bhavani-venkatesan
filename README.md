@@ -10,6 +10,7 @@
 4. Handle missing data by returning an empty string when there is no data in a field.
 5. Fix functionality for cases when delimiter exists within a quotation.
 6. Specify whether or not to include the header row in the parsed data by taking this as an input.
+7. Option to choose how parser should handle invalid data (e.g. skip rows or throw error).
 
 - #### Step 2: Use an LLM to help expand your perspective.
 1. Supports different delimiter types, taken as an input.
@@ -26,7 +27,7 @@
     (Functionality; suggested by both me and the LLM)
     2. As a user, I can use the CSV parser to parse data that uses different delimiters (e.g. commes, semicolons, spaces, etc.) so that it is extensible to more applications and a wider variety of CSV files.
     (Extensibility; suggested by me and the LLM)
-    3. As a user, I can extract just the necessary data by giving the parser a list of the desired column headers to make it more robust and avoid dealing with unnecessary data.
+    3. As a user, I can choose whether I want the parser to throw an error whenever the data in a row cannot be validated or if I want the parser to just skip invalid rows.
     (Extensibility; suggested by me)
     4. As a user, I can use the parser for more complex cases such as when the delimiter exists within a quotation and ensure that it is parsed corectly in such cases.
     (Functionality; suggested by me)
@@ -37,6 +38,7 @@
     My initial ideas focused mainly on immediate fixes for which I have some idea about how to implement them. This included basic functionality and bugs that I could think of based on the tests I came up with, and some quick improvements that would reduce the hardcoding in the current implementation (mainly through taking more user inputs). The ideas suggested by the LLM with my initial prompt, which was fairly general, were similar to this. I then tried a more specific prompt, going into more detail about the expectations for functionality and extensibility, and it suggested more higher level changes such as streaming APIs, pluggable transformers, async sources, and handling CSVs with different encodings. This gave me a very different perspective as I hadn't thought of these more complex changes earlier, but it also made me realise how LLMs can easily complicate the problem and get more technical than necessary, especially with more detailed prompts.
 
 ### Design Choices
+I chose to use Zod's parse() method instead of safeParse() so that the parser ends the program and propagates the error to the caller whenever there is data in the CSV file that does not comply with the schema. It will be the caller's responsibility to catch the error. I considered other options such as skipping the row or returning an error object but I thought it would be safer to make it clear to the caller that there is a problem with the data rather than just omit data that does not meet the schema. In future implementations, the user can make this decision.
 
 ### 1340 Supplement
 
